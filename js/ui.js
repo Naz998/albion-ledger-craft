@@ -25,8 +25,9 @@ window.UI = (function () {
       el('div', { class: 'header-inner' },
         el('a', { class: 'brand', href: 'index.html' },
           el('span', { class: 'brand-leaf', html: LEAF_SVG }),
-          el('span', { class: 'brand-name' }, 'Craft Ledger'),
+          el('span', { class: 'brand-name' }, 'Your Silver Making Guide'),
         ),
+        el('span', { class: 'brand-credit' }, 'Frezeli c: forced Naz :> to make this website'),
         el('nav', { class: 'main-nav' },
           el('a', { href: 'index.html', class: active === 'best' ? 'active' : null }, 'Best Sellers'),
           el('a', { href: 'materials.html', class: active === 'materials' ? 'active' : null }, 'My Materials'),
@@ -139,7 +140,7 @@ window.UI = (function () {
     const overlay = el('div', { class: 'modal-overlay setup' },
       el('div', { class: 'modal setup-modal' },
         el('div', { class: 'setup-art', html: LEAF_SVG }),
-        el('h2', {}, 'Welcome to Craft Ledger'),
+        el('h2', {}, 'Your Silver Making Guide'),
         el('p', { class: 'muted' }, 'Live crafting profits for Albion Online. Pick your server and home market to begin — you can change these any time from the bar above.'),
         el('h3', {}, 'Server'), serverRow,
         el('h3', {}, 'City'), cityRow,
@@ -290,7 +291,7 @@ window.UI = (function () {
 
   function renderFooter() {
     document.body.append(el('footer', { class: 'site-footer' },
-      el('p', {}, 'Craft Ledger · market data from the ',
+      el('p', {}, 'Your Silver Making Guide · market data from the ',
         el('a', { href: 'https://www.albion-online-data.com', target: '_blank', rel: 'noopener' }, 'Albion Online Data Project'),
         ' · item data from ',
         el('a', { href: 'https://github.com/ao-data/ao-bin-dumps', target: '_blank', rel: 'noopener' }, 'ao-bin-dumps'),

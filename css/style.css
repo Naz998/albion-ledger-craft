@@ -74,6 +74,13 @@ a { color: var(--gold); }
   font-size: 1.5rem; font-weight: 700; color: var(--gold);
   text-shadow: 0 1px 0 #000, 0 0 18px rgba(201, 169, 89, .25);
 }
+.brand-credit {
+  font-size: .8rem; font-style: italic; color: var(--green);
+  align-self: flex-end; padding-bottom: .35rem; white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .brand-credit { white-space: normal; padding-bottom: 0; align-self: center; flex-basis: 100%; order: 5; text-align: left; font-size: .74rem; }
+}
 .main-nav { display: flex; gap: .25rem; margin-left: auto; }
 .main-nav a {
   color: var(--ink-dim); text-decoration: none; font-weight: 600; font-size: .95rem;
