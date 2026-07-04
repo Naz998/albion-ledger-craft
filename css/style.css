@@ -75,8 +75,33 @@ a { color: var(--gold); }
   text-shadow: 0 1px 0 #000, 0 0 18px rgba(201, 169, 89, .25);
 }
 .brand-credit {
-  font-size: .8rem; font-style: italic; color: var(--green);
+  font-size: .8rem; font-style: italic; font-weight: 600;
   align-self: flex-end; padding-bottom: .35rem; white-space: nowrap;
+  /* shimmering gold gleam sweeping across green text */
+  background: linear-gradient(100deg,
+    var(--green) 25%, #f3eab8 42%, #ffd97a 50%, #f3eab8 58%, var(--green) 75%);
+  background-size: 240% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent; -webkit-text-fill-color: transparent;
+  animation: credit-shimmer 3.4s linear infinite;
+  filter: drop-shadow(0 0 7px rgba(201, 169, 89, .35));
+}
+.brand-credit::before, .brand-credit::after {
+  content: "✦"; font-style: normal; margin: 0 .35em;
+  -webkit-text-fill-color: var(--gold); color: var(--gold);
+  animation: credit-twinkle 1.7s ease-in-out infinite;
+}
+.brand-credit::after { animation-delay: .85s; }
+@keyframes credit-shimmer {
+  from { background-position: 240% 0; }
+  to { background-position: -40% 0; }
+}
+@keyframes credit-twinkle {
+  0%, 100% { opacity: .35; }
+  50% { opacity: 1; text-shadow: 0 0 8px rgba(201, 169, 89, .8); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-credit, .brand-credit::before, .brand-credit::after { animation: none; }
 }
 @media (max-width: 640px) {
   .brand-credit { white-space: normal; padding-bottom: 0; align-self: center; flex-basis: 100%; order: 5; text-align: left; font-size: .74rem; }
