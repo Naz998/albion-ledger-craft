@@ -318,6 +318,9 @@ main { flex: 1; width: 100%; max-width: 1180px; margin: 0 auto; padding: 1.1rem 
 .inv-list .remove { background: none; border: none; color: var(--ink-dim); cursor: pointer; font-size: .95rem; padding: .2rem; }
 .inv-list .remove:hover { color: var(--red); }
 
+.picker-filters { display: flex; gap: .4rem; margin-bottom: .5rem; flex-wrap: wrap; }
+.picker-filters select { flex: 1; min-width: 0; font-size: .84rem; padding: .32rem .4rem; }
+
 .picker { position: relative; }
 .picker-results {
   position: absolute; z-index: 20; left: 0; right: 0; top: 100%;

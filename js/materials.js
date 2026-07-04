@@ -40,21 +40,63 @@
   }
 
   // ------------------------------------------------------------- picker ----
+  // Same filtering controls as Best Sellers (tier / enchant / category) plus
+  // a text search — with filters set, the list is browsable without typing.
+  const MAT_CATS = [
+    ['all', 'All types', null],
+    ['raw', 'Raw Materials', { raw: 1 }],
+    ['refined', 'Refined Materials', { refined: 1 }],
+    ['herb', 'Herbs', { herb: 1 }],
+    ['farm', 'Farm & Animal Products', { farm: 1, animal: 1 }],
+    ['fish', 'Fish Products', { fish: 1 }],
+    ['fragment', 'Runes / Souls / Relics', { fragment: 1 }],
+  ];
+
   function buildPicker() {
-    const input = el('input', { type: 'search', placeholder: 'Search materials… (e.g. “pine planks”, “rune”)', 'aria-label': 'Search materials' });
+    const tierSel = el('select', { 'aria-label': 'Tier' }, el('option', { value: 'all' }, 'All tiers'));
+    for (let t = 2; t <= 8; t++) tierSel.append(el('option', { value: String(t) }, 'Tier ' + t));
+
+    const enchSel = el('select', { 'aria-label': 'Enchantment' }, el('option', { value: 'all' }, 'All enchants'));
+    for (let e = 0; e <= 4; e++) enchSel.append(el('option', { value: String(e) }, e === 0 ? '.0 (base)' : '.' + e));
+
+    const catSel = el('select', { 'aria-label': 'Material type' });
+    MAT_CATS.forEach(([key, label]) => catSel.append(el('option', { value: key }, label)));
+
+    const input = el('input', { type: 'search', placeholder: 'Search… or just pick filters and browse', 'aria-label': 'Search materials' });
     const qty = el('input', { type: 'number', min: '1', value: '100', style: 'width:90px', 'aria-label': 'Quantity' });
     const dropdown = el('div', { class: 'picker-results', hidden: true });
 
+    function syncEnchDisabled() {
+      const disabled = tierSel.value !== 'all' && +tierSel.value < 4;
+      enchSel.disabled = disabled;
+      if (disabled) enchSel.value = 'all';
+    }
+
     function search() {
       const q = input.value.trim().toLowerCase();
+      const tier = tierSel.value === 'all' ? null : +tierSel.value;
+      const ench = enchSel.value === 'all' || enchSel.disabled ? null : +enchSel.value;
+      const kinds = (MAT_CATS.find(c => c[0] === catSel.value) || MAT_CATS[0])[2];
+      const filtered = tier !== null || ench !== null || kinds;
       clear(dropdown);
-      if (q.length < 2) { dropdown.hidden = true; return; }
-      const terms = q.split(/\s+/);
+      if (!q && !filtered) { dropdown.hidden = true; return; }
+      const terms = q ? q.split(/\s+/) : [];
       const hits = PICKABLES.filter(p => {
-        const hay = (p.name + ' t' + p.tier + ' .' + p.el).toLowerCase();
-        return terms.every(t => hay.indexOf(t) >= 0);
-      }).slice(0, 12);
-      if (!hits.length) { dropdown.hidden = true; return; }
+        if (tier !== null && p.tier !== tier) return false;
+        if (ench !== null && p.el !== ench) return false;
+        if (kinds && !kinds[p.kind]) return false;
+        if (terms.length) {
+          const hay = (p.name + ' t' + p.tier + ' .' + p.el).toLowerCase();
+          if (!terms.every(t => hay.indexOf(t) >= 0)) return false;
+        }
+        return true;
+      }).sort((a, b) => (a.tier || 0) - (b.tier || 0) || a.el - b.el || a.name.localeCompare(b.name))
+        .slice(0, 30);
+      if (!hits.length) {
+        dropdown.append(el('div', { class: 'muted small', style: 'padding:.5rem .6rem' }, 'No materials match — loosen the filters or the search.'));
+        dropdown.hidden = false;
+        return;
+      }
       hits.forEach(p => {
         const b = el('button', { type: 'button' },
           UI.iconImg(ECON.ingMarketId(p.id), 26),
@@ -63,7 +105,6 @@
           el('span', { class: 'muted small', style: 'margin-left:auto' }, p.kind));
         b.addEventListener('click', () => {
           STATE.addMaterial(p.id, Math.max(1, +qty.value || 1));
-          input.value = '';
           dropdown.hidden = true;
           renderInventory();
           recompute();
@@ -72,13 +113,19 @@
       });
       dropdown.hidden = false;
     }
-    input.addEventListener('input', debounce(search, 120));
+    const searchNow = debounce(search, 120);
+    input.addEventListener('input', searchNow);
     input.addEventListener('focus', search);
+    tierSel.addEventListener('change', () => { syncEnchDisabled(); search(); });
+    enchSel.addEventListener('change', search);
+    catSel.addEventListener('change', search);
     document.addEventListener('click', ev => {
-      if (!dropdown.hidden && !dropdown.contains(ev.target) && ev.target !== input) dropdown.hidden = true;
+      if (!dropdown.hidden && !dropdown.contains(ev.target) && ev.target !== input &&
+          ev.target !== tierSel && ev.target !== enchSel && ev.target !== catSel) dropdown.hidden = true;
     });
 
     return el('div', {},
+      el('div', { class: 'picker-filters' }, tierSel, enchSel, catSel),
       el('div', { style: 'display:flex;gap:.5rem' },
         el('div', { class: 'picker', style: 'flex:1' }, input, dropdown), qty),
     );
