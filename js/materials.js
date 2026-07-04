@@ -228,15 +228,21 @@
 
     try {
       const cands = candidates(owned);
-      const ids = {};
-      for (const id in owned) ids[ECON.ingMarketId(id)] = 1;
+      const ingIds = {};
+      const outIds = {};
+      for (const id in owned) ingIds[ECON.ingMarketId(id)] = 1;
       for (const c of cands) {
         const item = D.items[c.uid];
-        ids[ECON.marketId(c.uid, c.lvl)] = 1;
-        for (const ing of routeIngredients(item, c.uid, c.lvl, c.route)) ids[ECON.ingMarketId(ing[0])] = 1;
+        outIds[ECON.marketId(c.uid, c.lvl)] = 1;
+        for (const ing of routeIngredients(item, c.uid, c.lvl, c.route)) ingIds[ECON.ingMarketId(ing[0])] = 1;
       }
-      const prices = await AODP.prices(STATE.get('server'), Object.keys(ids), [STATE.get('city')],
-        (d, t) => { barFill.style.width = (t ? d / t * 100 : 100) + '%'; });
+      // finished goods across all cities (feeds the price-outlier check);
+      // ingredients only in the selected city
+      const prices = await AODP.prices(STATE.get('server'), Object.keys(outIds), ECON.CITIES,
+        (d, t) => { barFill.style.width = (t ? d / t * 50 : 50) + '%'; });
+      const ingPrices = await AODP.prices(STATE.get('server'), Object.keys(ingIds), [STATE.get('city')],
+        (d, t) => { barFill.style.width = (50 + (t ? d / t * 50 : 50)) + '%'; });
+      ingPrices.forEach((v, k) => prices.set(k, v));
       const ctx = ECON.freshCtx(prices);
 
       const rows = [];
@@ -285,11 +291,13 @@
     if (!touchesOwned) return null;
     const batches = Math.max(1, ownedLimit === Infinity ? 1 : ownedLimit);
 
+    const outId = ECON.marketId(c.uid, c.lvl);
     const gross = (function () {
-      const row = ctx.prices.get(ECON.marketId(c.uid, c.lvl) + '|' + ctx.city);
+      const row = ctx.prices.get(outId + '|' + ctx.city);
       return row && row.sell_price_min > 0 ? row.sell_price_min : 0;
     })();
     if (!gross) return null;
+    const suspect = ECON.isSuspectPrice(ctx, outId, gross);
 
     let shoppingCost = 0, usedValue = 0, unpriceable = false;
     const shopping = [], consumed = [];
@@ -321,6 +329,7 @@
       econProfit: revenue - shoppingCost - usedValue,
       readyNow: shopping.length === 0,
       unpriceable,
+      suspect,
     };
   }
 
@@ -329,14 +338,22 @@
     const resultsEl = document.getElementById('mat-results');
     clear(resultsEl);
 
-    const usable = rows.filter(r => !r.unpriceable && r.econProfit !== null);
+    const priced = rows.filter(r => !r.unpriceable && r.econProfit !== null);
+    const suspects = priced.filter(r => r.suspect).length;
+    const usable = priced.filter(r => !r.suspect);
     const ready = usable.filter(r => r.readyNow).sort((a, b) => b.econProfit - a.econProfit);
     const shop = usable.filter(r => !r.readyNow).sort((a, b) => b.econProfit - a.econProfit);
 
     if (!usable.length) {
       resultsEl.append(el('div', { class: 'empty-state' },
-        el('p', {}, 'No crafts found that use these materials (or the markets are missing price data right now).')));
+        el('p', {}, 'No crafts found that use these materials (or the markets are missing price data right now).'),
+        suspects ? el('p', { class: 'small' }, suspects + ' craft(s) were hidden because their sell price looks like a lone overpriced listing.') : null));
       return;
+    }
+    if (suspects) {
+      resultsEl.append(el('div', { class: 'notice warn' },
+        '⚠ ' + suspects + ' craft(s) hidden: their ' + ctx.city + ' sell price is far above what the same item fetches in other cities — ' +
+        'almost certainly a single overpriced listing on a quiet market, not real demand.'));
     }
 
     if (ready.length) {

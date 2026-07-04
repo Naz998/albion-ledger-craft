@@ -199,6 +199,23 @@ window.ECON = (function () {
     return { route: 'upgrade', ok: missing.length === 0, perItem: total, batch: 1, rows: rows, missing: missing, rr: base.rr };
   }
 
+  // Outlier sanity check: on thin markets a single absurd listing becomes
+  // sell_price_min. If this city's price towers over the cross-city median,
+  // treat it as suspect. Needs price data for other cities in ctx (pages
+  // fetch finished-goods prices across all cities for exactly this reason).
+  function isSuspectPrice(ctx, id, gross) {
+    if (!(gross > 0)) return false;
+    const sample = [];
+    for (const c of CITIES) {
+      const p = sellPrice(ctx, id, c);
+      if (p > 0) sample.push(p);
+    }
+    if (sample.length < 3) return false;
+    sample.sort((a, b) => a - b);
+    const median = sample[Math.floor(sample.length / 2)];
+    return gross > median * 4 && gross - median > 50000;
+  }
+
   // ---- evaluation -------------------------------------------------------
   // Full craft-to-sell evaluation of one item at one enchant level.
   function evaluate(uid, lvl, ctx) {
@@ -240,25 +257,8 @@ window.ECON = (function () {
       if (a.net > revenue * 1.05 && a.net - revenue > 500 && (!better || a.net > better.net)) better = a;
     }
 
-    // Outlier sanity check: on thin markets a single absurd listing becomes
-    // sell_price_min. If this city's price towers over the cross-city median,
-    // treat it as suspect (UI hides these by default).
-    let suspect = false;
-    if (gross > 0) {
-      const sample = [];
-      for (const c of CITIES) {
-        const p = sellPrice(ctx, id, c);
-        if (p > 0) sample.push(p);
-      }
-      if (sample.length >= 3) {
-        sample.sort((a, b) => a - b);
-        const median = sample[Math.floor(sample.length / 2)];
-        if (gross > median * 4 && gross - median > 50000) suspect = true;
-      }
-    }
-
     return {
-      suspect: suspect,
+      suspect: isSuspectPrice(ctx, id, gross),
       uid: uid, lvl: lvl, id: id, item: item,
       name: item.n, tier: item.t, cat: item.c,
       cost: best.perItem, route: best, altRoute: alt,
@@ -307,7 +307,7 @@ window.ECON = (function () {
   return {
     SETUP_FEE, TAX_NORMAL, TAX_PREMIUM, BASE_RETURN, REFINE_SPEC, CRAFT_SPEC, FOCUS_BONUS, RETURN_CAP,
     CITIES, BLACK_MARKET, BM_CATS, CATEGORY_GROUPS, CAT_LABELS, REFINE_CITY,
-    bonusCity, returnRate, marketId, ingMarketId, ingName,
+    bonusCity, returnRate, marketId, ingMarketId, ingName, isSuspectPrice,
     salesTax, netSell, netSellBM, materialUnitCost,
     directCost, upgradeCost, upgradeEligible, evaluate, freshCtx,
     allOutputIds, allIngredientIds,

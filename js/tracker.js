@@ -105,9 +105,18 @@
 
     try {
       const ids = {};
-      for (const t of tracked) collectIds(t.uid, t.lvl, ids);
-      const prices = await AODP.prices(STATE.get('server'), Object.keys(ids), [STATE.get('city')],
-        (d, tot) => { barFill.style.width = (tot ? d / tot * 100 : 100) + '%'; });
+      const outIds = {};
+      for (const t of tracked) {
+        collectIds(t.uid, t.lvl, ids);
+        const item = D.items[t.uid];
+        if (item) outIds[ECON.marketId(t.uid, item.el != null ? item.el : t.lvl)] = 1;
+      }
+      // outputs across all cities so the price-outlier warning can fire
+      const prices = await AODP.prices(STATE.get('server'), Object.keys(outIds), ECON.CITIES,
+        (d, tot) => { barFill.style.width = (tot ? d / tot * 40 : 40) + '%'; });
+      const ingPrices = await AODP.prices(STATE.get('server'), Object.keys(ids), [STATE.get('city')],
+        (d, tot) => { barFill.style.width = (40 + (tot ? d / tot * 60 : 60)) + '%'; });
+      ingPrices.forEach((v, k) => prices.set(k, v));
       const ctx = ECON.freshCtx(prices);
 
       clear(listEl);
