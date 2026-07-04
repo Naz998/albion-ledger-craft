@@ -13,6 +13,7 @@ window.STATE = (function () {
     // model already accepts it, so it stays here as a future adjustable input.
     stationFeePct: 0,
     materials: [],         // [{id: catalogUid, qty: number}]
+    tracked: [],           // [{uid, lvl, qty}] — crafts being planned on the Tracker page
     filters: { tier: 'all', ench: 'all', cat: 'all' },
   };
 
@@ -52,5 +53,20 @@ window.STATE = (function () {
     save();
   }
 
-  return { get, set, all, isSetup, addMaterial, setMaterialQty, removeMaterial };
+  // --- tracked crafts (Tracker page) ---
+  function addTracked(uid, lvl, qty) {
+    const found = state.tracked.find(t => t.uid === uid && t.lvl === lvl);
+    if (found) found.qty = qty; else state.tracked.push({ uid: uid, lvl: lvl, qty: qty });
+    save();
+  }
+  function setTrackedQty(uid, lvl, qty) {
+    const found = state.tracked.find(t => t.uid === uid && t.lvl === lvl);
+    if (found) { found.qty = qty; save(); }
+  }
+  function removeTracked(uid, lvl) {
+    state.tracked = state.tracked.filter(t => !(t.uid === uid && t.lvl === lvl));
+    save();
+  }
+
+  return { get, set, all, isSetup, addMaterial, setMaterialQty, removeMaterial, addTracked, setTrackedQty, removeTracked };
 })();

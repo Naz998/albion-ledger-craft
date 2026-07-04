@@ -199,6 +199,34 @@ main { flex: 1; width: 100%; max-width: 1180px; margin: 0 auto; padding: 1.1rem 
 .flag.warn { color: #e9c46a; background: rgba(233, 196, 106, .08); border-color: rgba(233, 196, 106, .3); }
 .flag.good { color: var(--green); background: rgba(127, 176, 105, .08); border-color: rgba(127, 176, 105, .3); }
 .flag.info { color: var(--blue); background: rgba(111, 168, 201, .08); border-color: rgba(111, 168, 201, .3); }
+.flag.bad-flag { color: var(--red); background: rgba(209, 112, 92, .08); border-color: rgba(209, 112, 92, .3); }
+
+.item-icon {
+  width: 36px; height: 36px; flex-shrink: 0; object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .5));
+}
+.nav-badge {
+  display: inline-block; min-width: 1.15em; margin-left: .35em; padding: 0 .3em;
+  border-radius: 8px; background: var(--gold); color: #1a140a;
+  font-size: .68rem; font-weight: 700; text-align: center; vertical-align: 1px;
+  font-family: "IBM Plex Sans", sans-serif;
+}
+.nav-badge:empty { display: none; }
+
+.track-box {
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  background: rgba(127, 176, 105, .07); border: 1px solid rgba(127, 176, 105, .25);
+  border-radius: 10px; padding: .55rem .8rem; margin: .8rem 0;
+}
+
+.tracker-card { margin-bottom: 1.1rem; }
+.tracker-head { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.tracker-title { min-width: 160px; }
+.list-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; margin-top: .4rem; }
+.total-row td { font-weight: 700; color: var(--gold); border-top: 1px solid var(--gold-soft); }
+@media (max-width: 860px) {
+  .list-grid { grid-template-columns: 1fr; }
+}
 .route-tag { font-size: .74rem; color: var(--ink-dim); white-space: nowrap; }
 .stale { color: var(--red); font-size: .72rem; }
 

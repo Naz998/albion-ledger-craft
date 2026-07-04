@@ -13,6 +13,7 @@
   let sortDir = -1;
   let scanning = false;
   let scanQueued = false;
+  let hideOutliers = true;
 
   const root = document.getElementById('app');
 
@@ -59,11 +60,18 @@
     const refresh = el('button', { class: 'btn', type: 'button', title: 'Clear the price cache and re-fetch' }, '↻ Refresh prices');
     refresh.addEventListener('click', () => { AODP.clearCache(); scan(); });
 
+    const outlierCb = el('input', { type: 'checkbox' });
+    outlierCb.checked = hideOutliers;
+    outlierCb.addEventListener('change', () => { hideOutliers = outlierCb.checked; renderResults(); });
+    const outlierToggle = el('label', { class: 'switch', title: 'A lone overpriced listing on a quiet market can look like a huge profit. This hides prices far above what the same item sells for in other cities.' },
+      outlierCb, el('span', { class: 'switch-track' }), el('span', {}, 'Hide suspicious prices'));
+
     return el('div', { class: 'filters' },
       el('label', { class: 'filter' }, el('span', {}, 'Tier'), tierSel),
       el('label', { class: 'filter' }, el('span', {}, 'Enchantment'), enchSel),
       el('label', { class: 'filter' }, el('span', {}, 'Category'), catSel),
       el('span', { class: 'spacer' }),
+      outlierToggle,
       refresh,
     );
   }
@@ -216,15 +224,20 @@
         '⚔️ Black Market prices are compared automatically for combat equipment — look for the flags in the last column.'));
     }
 
-    if (!results.length) {
+    const suspects = results.filter(r => r.suspect).length;
+    const visibleCount = hideOutliers ? results.length - suspects : results.length;
+
+    if (!visibleCount) {
       if (!scanning) wrap.append(el('div', { class: 'empty-state' },
         el('div', { class: 'leaf', html: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M17.8 3.2C11 3.5 5.6 6.4 4.1 12.1c-.9 3.4.2 6.4.5 7.2.2-2 .8-4.9 2.6-7.5C9 9.2 11.6 7.4 14 6.5c-3.4 2.2-6.4 5.6-7.6 9.5-.6 1.9-.7 3.4-.7 4.3.8.3 2.4.7 4.3.4 5.8-.9 8.9-6.3 8.6-13.2 0-1.6-.3-3.2-.8-4.3Z"/></svg>' }),
         el('p', {}, 'No craftable items with market data match these filters.'),
-        noData ? el('p', { class: 'small' }, noData + ' matching item(s) were skipped for missing price data.') : null));
+        noData ? el('p', { class: 'small' }, noData + ' matching item(s) were skipped for missing price data.') : null,
+        suspects ? el('p', { class: 'small' }, suspects + ' item(s) hidden as suspicious prices — untick “Hide suspicious prices” to see them.') : null));
       return;
     }
 
     sortResults();
+    const visible = hideOutliers ? results.filter(r => !r.suspect) : results;
 
     const thSort = (key, label, numeric) => {
       const th = el('th', { class: (numeric ? 'num ' : '') + 'sortable' },
@@ -238,7 +251,7 @@
 
     const tbody = el('tbody');
     const ctx = results.ctx;
-    results.slice(0, shown).forEach(ev => {
+    visible.slice(0, shown).forEach(ev => {
       const item = ev.item;
       const sub = ev.viaRaw
         ? 'refined from ' + (D.raw[ev.viaRaw] ? D.raw[ev.viaRaw].n : ev.viaRaw)
@@ -249,10 +262,12 @@
           (ev.better.city === ECON.BLACK_MARKET ? '⚔ Black Market' : ev.better.city) + ' +' + fmtSilver(ev.better.net - ev.revenue)));
       }
       if (ECON.bonusCity(item) === ctx.city) flags.push(el('span', { class: 'flag good', title: 'This city has a specialty bonus for this item' }, '★ bonus'));
+      if (ev.suspect) flags.push(el('span', { class: 'flag bad-flag', title: 'This price is far above what the item sells for in other cities — probably a lone overpriced listing, not a real opportunity' }, '⚠ price outlier?'));
       if (hoursAgo(ev.priceAge) > 48) flags.push(el('span', { class: 'stale', title: 'Sell price last observed ' + UTIL.fmtAge(ev.priceAge) }, '⚠ stale'));
 
       const tr = el('tr', {},
         el('td', { class: 'col-main' }, el('div', { class: 'item-cell' },
+          UI.iconImg(ev.id, 36),
           UI.tierChip(ev.tier, ev.lvl),
           el('div', {}, el('div', { class: 'item-name' }, ev.name), el('div', { class: 'item-sub' }, sub)))),
         el('td', { 'data-label': 'Route' }, el('span', { class: 'route-tag' }, ev.route.route === 'direct' ? (ev.lvl ? 'direct .' + ev.lvl : 'craft') : 'upgrade path')),
@@ -273,19 +288,20 @@
             el('th', {}, 'Item'),
             el('th', {}, 'Route'),
             thSort('cost', 'Cost', true),
-            thSort('gross', 'Sell', true),
+            (function () { const th = thSort('gross', 'Sell', true); th.title = 'Lowest sell order for a single item in your city'; return th; })(),
             thSort('profit', 'Profit', true),
             thSort('roi', 'Return', true),
             el('th', {}, 'Flags'))),
           tbody)),
       el('p', { class: 'muted small', style: 'margin-top:.5rem' },
-        'Showing ' + Math.min(shown, results.length) + ' of ' + results.length + ' priced crafts' +
+        'Showing ' + Math.min(shown, visible.length) + ' of ' + visible.length + ' priced crafts' +
+        (hideOutliers && suspects ? ' · ' + suspects + ' hidden as suspicious prices' : '') +
         (noData ? ' · ' + noData + ' skipped (no market data)' : '') +
-        ' · evaluated in ' + ctx.city + (ctx.premium ? ' · Premium' : '') + (ctx.focus ? ' · Focus' : '')),
-      shown < results.length
+        ' · all prices are per single item · evaluated in ' + ctx.city + (ctx.premium ? ' · Premium' : '') + (ctx.focus ? ' · Focus' : '')),
+      shown < visible.length
         ? el('div', { style: 'text-align:center;margin-top:.6rem' },
             el('button', { class: 'btn', type: 'button', onclick: () => { shown += PAGE_SIZE; renderResults(); } },
-              'Show ' + Math.min(PAGE_SIZE, results.length - shown) + ' more'))
+              'Show ' + Math.min(PAGE_SIZE, visible.length - shown) + ' more'))
         : null,
     );
   }

@@ -12,6 +12,14 @@ data from the [Albion Online Data Project](https://www.albion-online-data.com).
 - **My Materials** — enter the materials you're holding and get the most
   profitable crafts achievable from them, plus a shopping list (with current
   prices) when you're a few ingredients short.
+- **Tracker** — press "+ Track this craft" on any item to plan a run: pick a
+  quantity and get a raw-materials list (for gathering), a refined-materials
+  list (for buying), and the total cost/profit of the run.
+
+Item images come from Albion's official render service. Best Sellers hides
+suspicious prices by default — on quiet markets a single overpriced listing
+can masquerade as a huge profit; the cross-city sanity check catches those
+(toggle "Hide suspicious prices" to see them anyway).
 
 ## Running it
 

@@ -57,6 +57,7 @@
       if (!hits.length) { dropdown.hidden = true; return; }
       hits.forEach(p => {
         const b = el('button', { type: 'button' },
+          UI.iconImg(ECON.ingMarketId(p.id), 26),
           UI.tierChip(p.tier || '?', p.el),
           el('span', {}, p.name),
           el('span', { class: 'muted small', style: 'margin-left:auto' }, p.kind));
@@ -100,6 +101,7 @@
         recompute();
       });
       listEl.append(el('li', {},
+        UI.iconImg(ECON.ingMarketId(m.id), 26),
         UI.tierChip(tierOf(m.id) || '?', enchOf(m.id)),
         el('span', { class: 'name' }, nameOf(m.id)),
         qtyInput,
@@ -311,6 +313,7 @@
         el('td', { colspan: '6', style: 'background:rgba(0,0,0,.18)' }, detailBlock(r)));
       const tr = el('tr', {},
         el('td', { class: 'col-main' }, el('div', { class: 'item-cell' },
+          UI.iconImg(ECON.marketId(r.uid, D.items[r.uid].el != null ? D.items[r.uid].el : r.lvl), 36),
           UI.tierChip(r.tier, r.lvl),
           el('div', {},
             el('div', { class: 'item-name' }, r.name),

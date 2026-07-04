@@ -6,6 +6,19 @@ window.UI = (function () {
 
   const LEAF_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M17.8 3.2C11 3.5 5.6 6.4 4.1 12.1c-.9 3.4.2 6.4.5 7.2.2-2 .8-4.9 2.6-7.5C9 9.2 11.6 7.4 14 6.5c-3.4 2.2-6.4 5.6-7.6 9.5-.6 1.9-.7 3.4-.7 4.3.8.3 2.4.7 4.3.4 5.8-.9 8.9-6.3 8.6-13.2 0-1.6-.3-3.2-.8-4.3Z"/></svg>';
 
+  // Official Albion item renders (works for enchanted ids like T4_MAIN_SWORD@2)
+  function iconUrl(marketId, size) {
+    return 'https://render.albiononline.com/v1/item/' + encodeURIComponent(marketId) + '.png?size=' + (size || 64);
+  }
+  function iconImg(marketId, size) {
+    const img = el('img', {
+      class: 'item-icon', src: iconUrl(marketId, Math.min(217, (size || 36) * 2)),
+      width: size || 36, height: size || 36, loading: 'lazy', alt: '',
+    });
+    img.addEventListener('error', () => { img.style.visibility = 'hidden'; });
+    return img;
+  }
+
   // ------------------------------------------------------------ header ----
   function renderHeader(active) {
     const header = el('header', { class: 'site-header' },
@@ -17,11 +30,14 @@ window.UI = (function () {
         el('nav', { class: 'main-nav' },
           el('a', { href: 'index.html', class: active === 'best' ? 'active' : null }, 'Best Sellers'),
           el('a', { href: 'materials.html', class: active === 'materials' ? 'active' : null }, 'My Materials'),
+          el('a', { href: 'tracker.html', class: active === 'tracker' ? 'active' : null }, 'Tracker',
+            el('span', { class: 'nav-badge', id: 'tracker-badge' })),
         ),
       ),
       renderSettingsBar(),
     );
     document.body.prepend(header);
+    updateTrackerBadge();
   }
 
   function renderSettingsBar() {
@@ -70,6 +86,14 @@ window.UI = (function () {
     const hint = document.getElementById('city-bonus-hint');
     if (hint) hint.textContent = cityBonusHint();
     if (typeof window.PAGE_REFRESH === 'function') window.PAGE_REFRESH(what);
+  }
+
+  function updateTrackerBadge() {
+    const badge = document.getElementById('tracker-badge');
+    if (!badge) return;
+    const n = (STATE.get('tracked') || []).length;
+    badge.textContent = n ? String(n) : '';
+    badge.style.display = n ? '' : 'none';
   }
 
   // ----------------------------------------------------- first-run setup ----
@@ -203,8 +227,24 @@ window.UI = (function () {
           ' — ' + fmtSilver(ev.better.net - ev.revenue) + ' more than ' + ctx.city + '.')
       : null;
 
+    // --- track this craft ---
+    const trackQty = el('input', { type: 'number', min: '1', value: '10', style: 'width:90px', 'aria-label': 'Quantity to craft' });
+    const trackBtn = el('button', { class: 'btn primary', type: 'button' }, '+ Track this craft');
+    const trackMsg = el('span', { class: 'muted small' });
+    trackBtn.addEventListener('click', () => {
+      const qty = Math.max(1, Math.floor(+trackQty.value || 1));
+      STATE.addTracked(ev.uid, ev.lvl, qty);
+      updateTrackerBadge();
+      UTIL.clear(trackMsg);
+      trackMsg.append('Added — ', el('a', { href: 'tracker.html' }, 'open the Tracker'), ' for the full material plan.');
+    });
+    const trackSection = el('div', { class: 'track-box' },
+      el('span', { class: 'muted small' }, 'Planning to craft this?'),
+      trackQty, trackBtn, trackMsg);
+
     const content = el('div', {},
       el('div', { class: 'modal-title' },
+        iconImg(ev.id, 44),
         tierChip(ev.tier, ev.lvl),
         el('h2', {}, ev.name),
         el('span', { class: 'muted' }, ECON.CAT_LABELS[item.c] || item.c),
@@ -217,6 +257,7 @@ window.UI = (function () {
         stat('Profit', fmtSilverFull(ev.profit), ev.roi !== null ? fmtPct(ev.roi, 1) + ' return' : '', ev.profit >= 0 ? 'good' : 'bad'),
       ),
       betterNote,
+      trackSection,
       el('h3', {}, 'Cost breakdown'),
       el('p', { class: 'muted small' },
         'Resource return: ' + fmtPct(rr.rate, 0) + (rr.capped ? ' (capped from ' + fmtPct(rr.raw, 0) + ')' : '') +
@@ -257,5 +298,5 @@ window.UI = (function () {
     ));
   }
 
-  return { renderHeader, renderFooter, ensureSetup, openModal, openItemModal, tierChip, enchChip, stat };
+  return { renderHeader, renderFooter, ensureSetup, openModal, openItemModal, tierChip, enchChip, stat, iconUrl, iconImg, updateTrackerBadge };
 })();

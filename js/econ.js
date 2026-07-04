@@ -240,7 +240,25 @@ window.ECON = (function () {
       if (a.net > revenue * 1.05 && a.net - revenue > 500 && (!better || a.net > better.net)) better = a;
     }
 
+    // Outlier sanity check: on thin markets a single absurd listing becomes
+    // sell_price_min. If this city's price towers over the cross-city median,
+    // treat it as suspect (UI hides these by default).
+    let suspect = false;
+    if (gross > 0) {
+      const sample = [];
+      for (const c of CITIES) {
+        const p = sellPrice(ctx, id, c);
+        if (p > 0) sample.push(p);
+      }
+      if (sample.length >= 3) {
+        sample.sort((a, b) => a - b);
+        const median = sample[Math.floor(sample.length / 2)];
+        if (gross > median * 4 && gross - median > 50000) suspect = true;
+      }
+    }
+
     return {
+      suspect: suspect,
       uid: uid, lvl: lvl, id: id, item: item,
       name: item.n, tier: item.t, cat: item.c,
       cost: best.perItem, route: best, altRoute: alt,
